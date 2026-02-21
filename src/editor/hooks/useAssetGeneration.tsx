@@ -82,7 +82,6 @@ export function useAssetGeneration() {
                 required: false,
             },
         ],
-        available: runtimeState.isPlaying ? 'disabled' : 'enabled',
         handler: async ({
             assetKey,
             description,
@@ -92,6 +91,12 @@ export function useAssetGeneration() {
             description: string;
             autoPlace?: boolean;
         }) => {
+            // Guard: Don't allow modifications while game is playing
+            if (runtimeState.isPlaying) {
+                console.warn('[AssetGen] 🛑 Cannot generate assets while game is playing');
+                throw new Error('Cannot generate assets while the game is playing. Stop the game first.');
+            }
+
             console.log('[AssetGen] Handler called:', { assetKey, description, autoPlace });
 
             try {

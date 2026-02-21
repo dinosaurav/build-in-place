@@ -58,8 +58,13 @@ export function useGameActions() {
                 ],
             },
         ],
-        available: runtimeState.isPlaying ? 'disabled' : 'enabled',
         handler: async ({ patches }: { patches: PatchOp[] }) => {
+            // Guard: Don't allow modifications while game is playing
+            if (runtimeState.isPlaying) {
+                console.warn('[CopilotKit] 🛑 Cannot modify scene while game is playing');
+                throw new Error('Cannot modify the scene while the game is playing. Stop the game first.');
+            }
+
             const patchStr = JSON.stringify(patches);
             const now = Date.now();
 
