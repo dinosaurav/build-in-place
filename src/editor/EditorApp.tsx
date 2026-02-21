@@ -15,6 +15,7 @@ import { useAssetGeneration } from './hooks/useAssetGeneration';
 import { useSceneNavigation } from './hooks/useSceneNavigation';
 import { PlayStopToggle } from './components/PlayStopToggle';
 import { SceneTreePanel } from './components/SceneTreePanel';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 // ── System prompt for the AI ──────────────────────────────────────────────────
 
@@ -85,6 +86,14 @@ function CopilotHooks() {
     return null;
 }
 
+function CopilotHooksWithBoundary() {
+    return (
+        <ErrorBoundary name="CopilotKit Integration" inline>
+            <CopilotHooks />
+        </ErrorBoundary>
+    );
+}
+
 /**
  * Handles the Cmd+K / Ctrl+K keyboard shortcut to toggle the sidebar.
  * Must be rendered inside a Copilot UI component (like CopilotSidebar)
@@ -110,7 +119,7 @@ function ShortcutToggle() {
 
 // ── Babylon Canvas + HUD ─────────────────────────────────────────────────────
 
-function BabylonViewport() {
+function BabylonViewportInner() {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [score, setScore] = useState(0);
 
@@ -188,10 +197,14 @@ function BabylonViewport() {
                 }}
             >
                 {/* ── Play/Stop Toggle ── */}
-                <PlayStopToggle />
+                <ErrorBoundary name="Play/Stop Toggle" inline>
+                    <PlayStopToggle />
+                </ErrorBoundary>
 
                 {/* ── Scene Tree Panel ── */}
-                <SceneTreePanel />
+                <ErrorBoundary name="Scene Tree Panel" inline>
+                    <SceneTreePanel />
+                </ErrorBoundary>
 
                 <div
                     style={{
@@ -229,6 +242,14 @@ function BabylonViewport() {
     );
 }
 
+function BabylonViewport() {
+    return (
+        <ErrorBoundary name="Babylon Viewport">
+            <BabylonViewportInner />
+        </ErrorBoundary>
+    );
+}
+
 // ── Top-level App ─────────────────────────────────────────────────────────────
 
 export function EditorApp() {
@@ -261,21 +282,22 @@ export function EditorApp() {
     }
 
     return (
-        <CopilotKit {...copilotProps}>
-            <div
-                className="editor-layout"
-                style={{
-                    width: '100vw',
-                    height: '100vh',
-                    position: 'relative',
-                    overflow: 'hidden',
-                    background: '#0d0d1a',
-                }}
-            >
-                <CopilotHooks />
-                <BabylonViewport />
+        <ErrorBoundary name="Build-in-Place Editor">
+            <CopilotKit {...copilotProps}>
+                <div
+                    className="editor-layout"
+                    style={{
+                        width: '100vw',
+                        height: '100vh',
+                        position: 'relative',
+                        overflow: 'hidden',
+                        background: '#0d0d1a',
+                    }}
+                >
+                    <CopilotHooksWithBoundary />
+                    <BabylonViewport />
 
-                <CopilotSidebar
+                    <CopilotSidebar
                     instructions={SYSTEM_PROMPT}
                     labels={{
                         title: '🏗️ Build-in-Place',
@@ -296,7 +318,8 @@ export function EditorApp() {
                         display: none !important;
                     }
                 `}</style>
-            </div>
-        </CopilotKit>
+                </div>
+            </CopilotKit>
+        </ErrorBoundary>
     );
 }
