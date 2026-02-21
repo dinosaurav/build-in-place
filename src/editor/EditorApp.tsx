@@ -283,9 +283,19 @@ export function EditorApp() {
                     }}
                     defaultOpen={false}
                     clickOutsideToClose={true}
+                    showDevelopmentConsole={false}
                 >
                     <ShortcutToggle />
                 </CopilotSidebar>
+
+                {/* Hide CopilotKit branding */}
+                <style>{`
+                    [class*="PoweredBy"],
+                    [class*="powered-by"],
+                    a[href*="copilotkit.ai"] {
+                        display: none !important;
+                    }
+                `}</style>
             </div>
         </CopilotKit>
     );
