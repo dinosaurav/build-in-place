@@ -17,7 +17,7 @@ export function SceneTreePanel() {
     const patchDoc = useGameStore((s) => s.patchDoc);
     const [isExpanded, setIsExpanded] = useState(true);
     const [expandedScenes, setExpandedScenes] = useState<Set<string>>(
-        new Set([doc.activeScene])
+        new Set(doc ? [doc.activeScene] : [])
     );
 
     if (!doc) return null;
