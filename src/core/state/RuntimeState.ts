@@ -35,6 +35,8 @@ export class RuntimeState {
     }
 
     setVariable(key: string, value: number): void {
+        if (this.variables.get(key) === value) return; // Only dispatch if changed
+
         this.variables.set(key, value);
         // Emit a DOM event so any UI layer can react without tight coupling
         window.dispatchEvent(

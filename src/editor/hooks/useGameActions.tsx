@@ -103,5 +103,5 @@ export function useGameActions() {
             }
             return <></>;
         },
-    });
+    }, []);
 }
