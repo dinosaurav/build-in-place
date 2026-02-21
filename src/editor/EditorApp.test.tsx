@@ -5,6 +5,14 @@ import * as CopilotKitUI from '@copilotkit/react-ui';
 import { gameDocumentStore } from '../core/state/GameDocumentStore';
 import { mockGameDoc } from '../schema/game.schema';
 
+// Mock fetch to return game.json content from mockGameDoc
+global.fetch = vi.fn(() =>
+    Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(mockGameDoc),
+    } as Response)
+);
+
 // Mock babylon viewport to prevent webgl context requirement
 vi.mock('./EditorApp', async (importOriginal) => {
     const original = await importOriginal<typeof import('./EditorApp')>();

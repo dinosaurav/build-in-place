@@ -7,7 +7,7 @@ import { SceneReconciler } from '../core/reconciler/SceneReconciler';
 import { EventBus } from '../core/bus/EventBus';
 import { gameDocumentStore } from '../core/state/GameDocumentStore';
 import { runtimeState } from '../core/state/RuntimeState';
-import { mockGameDoc, type GameDocument } from '../schema/game.schema';
+import type { GameDocument } from '../schema/game.schema';
 
 import { useGameContext } from './hooks/useGameContext';
 import { useGameActions } from './hooks/useGameActions';
@@ -122,58 +122,86 @@ function ShortcutToggle() {
 function BabylonViewportInner() {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const [score, setScore] = useState(0);
+    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
         const canvas = canvasRef.current;
         if (!canvas) return;
 
-        // 1. Create reconciler + bus
-        const reconciler = new SceneReconciler(canvas);
-        const bus = new EventBus(reconciler);
-        reconciler.bus = bus;
+        let reconciler: SceneReconciler | null = null;
+        let unsub: (() => void) | null = null;
 
-        // 2. Seed store with mock data
-        const liveDoc: GameDocument = structuredClone(mockGameDoc);
-        gameDocumentStore.getState().setDoc(liveDoc);
+        // Load game data from JSON file
+        (async () => {
+            try {
+                const response = await fetch('/game.json');
+                if (!response.ok) {
+                    throw new Error(`Failed to load game.json: ${response.statusText}`);
+                }
+                const gameData: GameDocument = await response.json();
 
-        // 3. Initial reconcile
-        reconciler.reconcile(liveDoc);
-        runtimeState.isPlaying = false; // Editor mode — AI tools enabled
+                // 1. Create reconciler + bus
+                reconciler = new SceneReconciler(canvas);
+                const bus = new EventBus(reconciler);
+                reconciler.bus = bus;
 
-        // 4. Subscribe: store changes → reconcile
-        const unsub = gameDocumentStore.subscribe((state) => {
-            reconciler.reconcile(state.doc);
-        });
+                // 2. Seed store with loaded data
+                const liveDoc: GameDocument = structuredClone(gameData);
+                gameDocumentStore.getState().setDoc(liveDoc);
 
-        // 5. Score HUD listeners
-        const onVarChange = (e: Event) => {
-            const { key, value } = (e as CustomEvent<{ key: string; value: number }>).detail;
-            if (key === 'score') setScore(value);
-        };
-        const onReset = () => setScore(0);
+                // 3. Initial reconcile
+                reconciler.reconcile(liveDoc);
+                runtimeState.isPlaying = false; // Editor mode — AI tools enabled
 
-        window.addEventListener('runtime:variable_changed', onVarChange);
-        window.addEventListener('runtime:reset', onReset);
+                // 4. Subscribe: store changes → reconcile
+                unsub = gameDocumentStore.subscribe((state) => {
+                    reconciler!.reconcile(state.doc);
+                });
 
-        // 6. Console helpers
-        (window as any).updateAndReconcile = (mutator: (doc: GameDocument) => void) => {
-            const doc = structuredClone(gameDocumentStore.getState().doc);
-            mutator(doc);
-            gameDocumentStore.getState().setDoc(doc);
-            console.log('[main] Reconciled.', structuredClone(doc));
-        };
-        (window as any).liveDoc = liveDoc;
-        (window as any).runtimeState = runtimeState;
+                // 5. Score HUD listeners
+                const onVarChange = (e: Event) => {
+                    const { key, value } = (e as CustomEvent<{ key: string; value: number }>)
+                        .detail;
+                    if (key === 'score') setScore(value);
+                };
+                const onReset = () => setScore(0);
 
-        const label = HAS_COPILOT
-            ? '[Build-in-Place] CopilotKit loaded. Press ⌘K to open AI sidebar.'
-            : '[Build-in-Place] Running in standalone mode (no CopilotKit keys). Set VITE_COPILOTKIT_PUBLIC_API_KEY in .env to enable AI.';
-        console.log(`%c${label}`, 'color: #7aa2ff; font-weight: bold;');
+                window.addEventListener('runtime:variable_changed', onVarChange);
+                window.addEventListener('runtime:reset', onReset);
 
+                // 6. Console helpers
+                (window as any).updateAndReconcile = (mutator: (doc: GameDocument) => void) => {
+                    const doc = structuredClone(gameDocumentStore.getState().doc);
+                    mutator(doc);
+                    gameDocumentStore.getState().setDoc(doc);
+                    console.log('[main] Reconciled.', structuredClone(doc));
+                };
+                (window as any).liveDoc = liveDoc;
+                (window as any).runtimeState = runtimeState;
+
+                const label = HAS_COPILOT
+                    ? '[Build-in-Place] CopilotKit loaded. Press ⌘K to open AI sidebar.'
+                    : '[Build-in-Place] Running in standalone mode (no CopilotKit keys). Set VITE_COPILOTKIT_PUBLIC_API_KEY in .env to enable AI.';
+                console.log(`%c${label}`, 'color: #7aa2ff; font-weight: bold;');
+
+                setIsLoading(false);
+
+                // Cleanup function stored for later
+                return () => {
+                    if (unsub) unsub();
+                    window.removeEventListener('runtime:variable_changed', onVarChange);
+                    if (reconciler) reconciler.dispose();
+                };
+            } catch (error) {
+                console.error('[Build-in-Place] Failed to load game.json:', error);
+                setIsLoading(false);
+            }
+        })();
+
+        // Cleanup when component unmounts
         return () => {
-            unsub();
-            window.removeEventListener('runtime:variable_changed', onVarChange);
-            reconciler.dispose();
+            if (unsub) unsub();
+            if (reconciler) reconciler.dispose();
         };
     }, []);
 
@@ -184,6 +212,29 @@ function BabylonViewportInner() {
                 id="renderCanvas"
                 style={{ width: '100%', height: '100%', display: 'block', outline: 'none' }}
             />
+
+            {/* Loading overlay */}
+            {isLoading && (
+                <div
+                    style={{
+                        position: 'absolute',
+                        top: 0,
+                        left: 0,
+                        width: '100%',
+                        height: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: 'rgba(13, 13, 26, 0.95)',
+                        color: '#7aa2ff',
+                        fontSize: '18px',
+                        fontWeight: 600,
+                        fontFamily: 'system-ui, sans-serif',
+                    }}
+                >
+                    Loading game...
+                </div>
+            )}
 
             {/* HUD overlay */}
             <div
