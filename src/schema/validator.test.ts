@@ -233,5 +233,41 @@ describe('validator', () => {
             expect(result.error).toBeDefined();
             expect(result.error).toContain('Validation failed');
         });
+
+        it('accepts texture field on nodes', () => {
+            const patches = [
+                {
+                    op: 'add' as const,
+                    path: '/scenes/test_scene/nodes/0/texture',
+                    value: 'fire_texture',
+                },
+            ];
+
+            const result = validatePatches(validDoc, patches);
+
+            expect(result.success).toBe(true);
+            expect(result.data!.scenes.test_scene.nodes[0].texture).toBe('fire_texture');
+        });
+
+        it('accepts nodes with texture from the start', () => {
+            const patches = [
+                {
+                    op: 'add' as const,
+                    path: '/scenes/test_scene/nodes/1',
+                    value: {
+                        id: 'textured_node',
+                        type: 'mesh',
+                        primitive: 'sphere',
+                        position: [0, 1, 0],
+                        texture: 'wood_texture',
+                    },
+                },
+            ];
+
+            const result = validatePatches(validDoc, patches);
+
+            expect(result.success).toBe(true);
+            expect(result.data!.scenes.test_scene.nodes[1].texture).toBe('wood_texture');
+        });
     });
 });
