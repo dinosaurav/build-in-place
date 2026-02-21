@@ -31,6 +31,7 @@ Rules:
 - Always give new nodes a unique id (e.g. "sphere_2", "blue_box_1").
 - Never modify the "floor" (index 0) or "sun" (index 1) nodes unless asked.
 - Keep paths simple: /nodes/..., /variables/..., /subscriptions/...
+- BATCH MULTIPLE CHANGES: Output a SINGLE updateGameDocument array containing all patches. NEVER call updateGameDocument more than once per message.
 
 BEHAVIORAL LOGIC (Phase 2):
 If the user asks for interaction (e.g., "When I click the box, destroy it and add 1 score"):
