@@ -14,6 +14,7 @@ import type { Action } from '../../schema/game.schema';
 import { getGame } from '../state/GameDocumentStore';
 import { runtimeState } from '../state/RuntimeState';
 import type { SceneReconciler } from '../reconciler/SceneReconciler';
+import { executeAction } from './ActionExecutor';
 
 export interface EventPayload {
     nodeId?: string;
@@ -26,6 +27,9 @@ export class EventBus {
     // ── Public ────────────────────────────────────────────────────────────
 
     publish(eventName: string, payload: EventPayload = {}): void {
+        // Guard: Do not process logic if the editor is stopped.
+        if (!runtimeState.isPlaying) return;
+
         const doc = getGame();
         const sceneData = doc.scenes[doc.activeScene];
         if (!sceneData?.subscriptions) return;
@@ -42,27 +46,7 @@ export class EventBus {
 
     private executeActions(actions: Action[], payload: EventPayload): void {
         for (const action of actions) {
-            switch (action.type) {
-                case 'increment': {
-                    const current = runtimeState.getVariable(action.target);
-                    runtimeState.setVariable(action.target, current + action.value);
-                    break;
-                }
-
-                case 'destroy_node': {
-                    const targetId =
-                        action.target === '$event.node'
-                            ? (payload.nodeId ?? '')
-                            : action.target;
-
-                    if (targetId) {
-                        runtimeState.markDestroyed(targetId);
-                        // Immediately reconcile so the mesh disappears
-                        this.reconciler.reconcile(getGame());
-                    }
-                    break;
-                }
-            }
+            executeAction(action, payload, this.reconciler);
         }
     }
 }

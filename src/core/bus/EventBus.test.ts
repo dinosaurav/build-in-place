@@ -12,6 +12,7 @@ describe('EventBus', () => {
         bus = new EventBus(mockReconciler as any);
         vi.clearAllMocks();
         runtimeState.reset();
+        runtimeState.isPlaying = true;
     });
 
     it('reads subscriptions from the GameDocument and executes an increment action', () => {

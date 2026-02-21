@@ -9,6 +9,7 @@
 import { useCopilotAction } from '@copilotkit/react-core';
 import { useGameStore } from '../../core/state/GameDocumentStore';
 import { runtimeState } from '../../core/state/RuntimeState';
+import { useRef } from 'react';
 
 interface PatchOp {
     op: string;
@@ -18,6 +19,8 @@ interface PatchOp {
 
 export function useGameActions() {
     const applyPatch = useGameStore((s) => s.applyPatch);
+    const lastPatchRef = useRef<string>('');
+    const lastPatchTimeRef = useRef<number>(0);
 
     useCopilotAction({
         name: 'updateGameDocument',
@@ -57,7 +60,18 @@ export function useGameActions() {
         ],
         available: runtimeState.isPlaying ? 'disabled' : 'enabled',
         handler: async ({ patches }: { patches: PatchOp[] }) => {
-            console.log('[CopilotKit] Applying patches:', patches);
+            const patchStr = JSON.stringify(patches);
+            const now = Date.now();
+
+            if (lastPatchRef.current === patchStr && now - lastPatchTimeRef.current < 2000) {
+                console.log('[CopilotKit] 🛑 Ignoring duplicate patch request within 2s:', patches);
+                return;
+            }
+
+            console.log('[CopilotKit] ✅ Applying patches:', patches);
+            lastPatchRef.current = patchStr;
+            lastPatchTimeRef.current = now;
+
             applyPatch(patches as any);
         },
         render: ({ status, args }: any) => {

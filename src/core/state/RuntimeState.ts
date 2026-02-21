@@ -66,6 +66,8 @@ export class RuntimeState {
         this.isPlaying = false;
         this.variables.clear();
         this.destroyedNodes.clear();
+
+        window.dispatchEvent(new CustomEvent('runtime:reset'));
     }
 }
 

@@ -1,13 +1,3 @@
-/**
- * EditorApp.tsx
- *
- * Top-level React component. Combines:
- *  - Babylon.js canvas (via ref + useEffect)
- *  - CopilotKit sidebar (floating glass panel, toggled with Cmd+K)
- *  - Score HUD overlay
- *  - Game context and action hooks for AI control
- */
-
 import { useEffect, useRef, useState } from 'react';
 import { CopilotKit } from '@copilotkit/react-core';
 import { CopilotSidebar, useChatContext } from '@copilotkit/react-ui';
@@ -21,6 +11,7 @@ import { mockGameDoc, type GameDocument } from '../schema/game.schema';
 
 import { useGameContext } from './hooks/useGameContext';
 import { useGameActions } from './hooks/useGameActions';
+import { PlayStopToggle } from './components/PlayStopToggle';
 
 // ── System prompt for the AI ──────────────────────────────────────────────────
 
@@ -39,7 +30,15 @@ Rules:
 - To REMOVE a node, use op:"remove" with e.g. "/nodes/2".
 - Always give new nodes a unique id (e.g. "sphere_2", "blue_box_1").
 - Never modify the "floor" (index 0) or "sun" (index 1) nodes unless asked.
-- Keep paths simple: /nodes/..., /variables/..., /subscriptions/...`;
+- Keep paths simple: /nodes/..., /variables/..., /subscriptions/...
+
+BEHAVIORAL LOGIC (Phase 2):
+If the user asks for interaction (e.g., "When I click the box, destroy it and add 1 score"):
+1. Patch the targeted mesh to add a \`clickable\` component: 
+   \`components: [{ type: "clickable", event: "box.clicked" }]\`
+2. Add a new subscription object into the \`/subscriptions/-\` array observing that event:
+   \`{ id: "box_rule", on: "box.clicked", actions: [{ type: "destroy_node", target: "$event.node" }, { type: "increment", target: "score", value: 1 }] }\`
+3. If they ask to modify a variable (like score), make sure you check if it's already instantiated.`;
 
 // ── Detect CopilotKit availability ────────────────────────────────────────────
 
@@ -106,12 +105,15 @@ function BabylonViewport() {
             reconciler.reconcile(state.doc);
         });
 
-        // 5. Score HUD listener
+        // 5. Score HUD listeners
         const onVarChange = (e: Event) => {
             const { key, value } = (e as CustomEvent<{ key: string; value: number }>).detail;
             if (key === 'score') setScore(value);
         };
+        const onReset = () => setScore(0);
+
         window.addEventListener('runtime:variable_changed', onVarChange);
+        window.addEventListener('runtime:reset', onReset);
 
         // 6. Console helpers
         (window as any).updateAndReconcile = (mutator: (doc: GameDocument) => void) => {
@@ -154,6 +156,9 @@ function BabylonViewport() {
                     pointerEvents: 'none',
                 }}
             >
+                {/* ── NEW: Play/Stop Toggle ── */}
+                <PlayStopToggle />
+
                 <div
                     style={{
                         position: 'absolute',
