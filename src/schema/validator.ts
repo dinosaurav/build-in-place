@@ -81,10 +81,15 @@ const AssetDefinitionSchema = z.object({
     type: z.enum(['glb', 'texture']),
     url: z.string().refine(
         (val) => {
-            // Accept both HTTP(S) URLs and data URLs (for embedded textures)
-            return val.startsWith('http://') || val.startsWith('https://') || val.startsWith('data:');
+            // Accept HTTP(S) URLs, data URLs, and relative URLs (starting with /)
+            return (
+                val.startsWith('http://') ||
+                val.startsWith('https://') ||
+                val.startsWith('data:') ||
+                val.startsWith('/')
+            );
         },
-        { message: 'URL must be a valid HTTP(S) URL or data URL' }
+        { message: 'URL must be a valid HTTP(S) URL, data URL, or relative URL (starting with /)' }
     ),
     metadata: z
         .object({
