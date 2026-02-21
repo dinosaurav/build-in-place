@@ -31,7 +31,7 @@ async function generateTextureWithNanoBanana(
     const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 
     // Enhance the prompt for better texture generation
-    const texturePrompt = `Generate a seamless, tileable PBR texture: ${prompt}. The texture should be high quality, seamless on all edges, and suitable for 3D material mapping. Focus on realistic surface details, lighting, and material properties.`;
+    const texturePrompt = `A high quality photo of ${prompt} texture, seamless and tileable`;
 
     const requestBody = {
         contents: [
@@ -67,15 +67,16 @@ async function generateTextureWithNanoBanana(
 
         // Extract base64 image from response
         const imagePart = data.candidates?.[0]?.content?.parts?.find(
-            (part: any) => part.inline_data?.mime_type === 'image/png'
+            (part: any) => part.inlineData?.mimeType === 'image/png'
         );
 
-        if (!imagePart?.inline_data?.data) {
+        if (!imagePart?.inlineData?.data) {
+            console.error('[NanoBanana] Response structure:', JSON.stringify(data, null, 2));
             throw new Error('No image data in NanoBanana response');
         }
 
         console.log('[NanoBanana] ✅ Texture generated successfully');
-        return imagePart.inline_data.data;
+        return imagePart.inlineData.data;
     } catch (error) {
         console.error('[NanoBanana] Failed to generate texture:', error);
         throw error;
