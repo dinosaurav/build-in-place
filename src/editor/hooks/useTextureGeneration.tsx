@@ -242,8 +242,11 @@ export function useTextureGeneration() {
                             const nodeIndex = nodes.findIndex((n) => n.id === nodeId);
 
                             if (nodeIndex !== -1) {
+                                const node = nodes[nodeIndex];
+                                const hasTexture = 'texture' in node;
+
                                 patches.push({
-                                    op: 'add',
+                                    op: hasTexture ? 'replace' : 'add',
                                     path: `/scenes/${activeScene}/nodes/${nodeIndex}/texture`,
                                     value: textureKey,
                                 });
