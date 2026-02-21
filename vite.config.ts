@@ -1,8 +1,9 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
+import { textureSaverPlugin } from './vite-plugin-texture-saver';
 
 export default defineConfig({
-    plugins: [react()],
+    plugins: [react(), textureSaverPlugin()],
     server: {
         open: true,
     },

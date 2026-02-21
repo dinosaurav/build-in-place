@@ -89,6 +89,44 @@ function base64ToDataUrl(base64: string, mimeType: string = 'image/png'): string
     return `data:${mimeType};base64,${base64}`;
 }
 
+/**
+ * Save texture to /public/textures/ via API endpoint
+ * Returns the URL path if successful, or null if it fails
+ */
+async function saveTextureToDisk(
+    textureKey: string,
+    base64Data: string,
+    resolution: string
+): Promise<string | null> {
+    try {
+        // Generate descriptive filename: textureKey_resolution.png
+        const filename = `${textureKey}_${resolution}.png`;
+
+        const response = await fetch('/api/save-texture', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                filename,
+                base64Data,
+            }),
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.error || 'Failed to save texture');
+        }
+
+        const result = await response.json();
+        console.log(`[TextureGen] ✅ Saved to disk: ${result.url}`);
+        return result.url; // Returns "/textures/wood_oak_2K.png"
+    } catch (error) {
+        console.warn('[TextureGen] Failed to save to disk, using data URL:', error);
+        return null;
+    }
+}
+
 export function useTextureGeneration() {
     const applyPatch = useGameStore((s) => s.applyPatch);
 
@@ -158,22 +196,36 @@ export function useTextureGeneration() {
                 try {
                     // Step 1: Generate the texture with NanoBanana
                     const base64Image = await generateTextureWithNanoBanana(description, resolution);
-                    const dataUrl = base64ToDataUrl(base64Image);
 
-                    // Step 2: Add texture to asset manifest
+                    // Step 2: Try to save to disk, fall back to data URL
+                    const savedUrl = await saveTextureToDisk(textureKey, base64Image, resolution);
+                    const textureUrl = savedUrl || base64ToDataUrl(base64Image);
+
+                    if (savedUrl) {
+                        console.log(
+                            `[TextureGen] 💾 Texture saved to /public${savedUrl} - reusable across sessions!`
+                        );
+                    } else {
+                        console.log(
+                            '[TextureGen] ⚠️ Using data URL (not persisted) - texture will be lost on reload'
+                        );
+                    }
+
+                    // Step 3: Add texture to asset manifest
                     const patches: any[] = [
                         {
                             op: 'add',
                             path: `/assets/${textureKey}`,
                             value: {
                                 type: 'texture',
-                                url: dataUrl, // Data URL for embedded texture
+                                url: textureUrl, // Persistent file URL or data URL fallback
                                 metadata: {
                                     name: textureKey,
                                     description: description,
                                     resolution: resolution,
                                     generatedAt: new Date().toISOString(),
                                     generator: 'NanoBanana (Gemini 2.5 Flash Image)',
+                                    persistent: !!savedUrl, // Flag to indicate if it's saved to disk
                                 },
                             },
                         },
