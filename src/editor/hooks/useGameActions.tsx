@@ -77,9 +77,16 @@ export function useGameActions() {
             lastPatchRef.current = patchStr;
             lastPatchTimeRef.current = now;
 
-            applyPatch(patches as any);
+            // Apply patches with Zod validation
+            const result = applyPatch(patches as any);
 
-            // Artificial delay to allow React state updates (useCopilotReadable) 
+            if (!result.success) {
+                // Validation failed - throw error so CopilotKit sends it back to AI
+                console.error('[CopilotKit] ❌ Patch validation failed:', result.error);
+                throw new Error(result.error || 'Patch validation failed');
+            }
+
+            // Artificial delay to allow React state updates (useCopilotReadable)
             // to flush and be captured as the new context before the tool call completes.
             await new Promise((resolve) => setTimeout(resolve, 200));
         },

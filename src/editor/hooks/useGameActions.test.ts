@@ -19,7 +19,7 @@ describe('useGameActions', () => {
 
     beforeEach(() => {
         vi.clearAllMocks();
-        mockApplyPatch = vi.fn();
+        mockApplyPatch = vi.fn().mockReturnValue({ success: true });
         (useGameStore as any).mockImplementation((selector: any) => {
             // Mock the selector returning applyPatch
             return mockApplyPatch;

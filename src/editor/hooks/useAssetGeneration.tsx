@@ -136,7 +136,12 @@ export function useAssetGeneration() {
                 }
 
                 console.log('[AssetGen] Applying patches:', patches);
-                applyPatch(patches);
+                const result = applyPatch(patches);
+
+                if (!result.success) {
+                    console.error('[AssetGen] ❌ Patch validation failed:', result.error);
+                    throw new Error(result.error || 'Failed to add asset to manifest');
+                }
 
                 return `Asset "${assetKey}" generated and added to manifest. ${
                     autoPlace ? 'Node created at origin (0, 0, 0).' : 'Use it by setting asset: "${assetKey}" on a node.'
