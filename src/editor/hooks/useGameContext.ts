@@ -8,11 +8,18 @@
 
 import { useCopilotReadable } from '@copilotkit/react-core';
 import { useGameStore } from '../../core/state/GameDocumentStore';
+import { useEffect } from 'react';
 
 export function useGameContext() {
     const doc = useGameStore((s) => s.doc);
 
     const activeScene = doc?.scenes?.[doc.activeScene];
+
+    useEffect(() => {
+        if (activeScene) {
+            console.log('[CopilotKit State Sync] Context updated for LLM with nodes:', activeScene.nodes.length);
+        }
+    }, [activeScene]);
 
     useCopilotReadable({
         description:

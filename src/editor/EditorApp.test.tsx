@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, fireEvent } from '@testing-library/react';
 import { EditorApp } from './EditorApp';
 import * as CopilotKitUI from '@copilotkit/react-ui';
+import { gameDocumentStore } from '../core/state/GameDocumentStore';
+import { mockGameDoc } from '../schema/game.schema';
 
 // Mock babylon viewport to prevent webgl context requirement
 vi.mock('./EditorApp', async (importOriginal) => {
@@ -29,6 +31,9 @@ describe('EditorApp & ShortcutToggle', () => {
     let mockSetOpen: ReturnType<typeof vi.fn>;
 
     beforeEach(() => {
+        // Initialize the game document store with mock data
+        gameDocumentStore.getState().setDoc(structuredClone(mockGameDoc));
+
         mockSetOpen = vi.fn();
         (CopilotKitUI.useChatContext as any).mockReturnValue({
             open: false,

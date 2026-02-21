@@ -73,6 +73,10 @@ export function useGameActions() {
             lastPatchTimeRef.current = now;
 
             applyPatch(patches as any);
+
+            // Artificial delay to allow React state updates (useCopilotReadable) 
+            // to flush and be captured as the new context before the tool call completes.
+            await new Promise((resolve) => setTimeout(resolve, 200));
         },
         render: ({ status, args }: any) => {
             if (status === 'inProgress') {

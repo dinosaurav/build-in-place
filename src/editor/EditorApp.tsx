@@ -11,35 +11,63 @@ import { mockGameDoc, type GameDocument } from '../schema/game.schema';
 
 import { useGameContext } from './hooks/useGameContext';
 import { useGameActions } from './hooks/useGameActions';
+import { useAssetGeneration } from './hooks/useAssetGeneration';
+import { useSceneNavigation } from './hooks/useSceneNavigation';
 import { PlayStopToggle } from './components/PlayStopToggle';
+import { SceneTreePanel } from './components/SceneTreePanel';
 
 // ── System prompt for the AI ──────────────────────────────────────────────────
 
 const SYSTEM_PROMPT = `You are a 3D level designer assistant for a game editor called "Build-in-Place".
 
-Use the updateGameDocument tool for ALL scene changes. You have full control over the 3D scene via JSON Patches.
+You have access to multiple specialized tools:
+- updateGameDocument: Modify the scene via JSON Patches (nodes, variables, subscriptions)
+- generateAsset: Generate 3D models from descriptions
+- navigateToScene: Switch between different scenes/levels
 
-Rules:
-- Colors must be CSS hex strings (e.g. "#ff0000" for red, "#0088ff" for blue).
-- Positions are [x, y, z] arrays. The ground is at y=0. Place objects above it.
-- Size is a single number (uniform scale, default 1). Use this for resizing.
-- Primitives: "box", "sphere", "ground".
-- Node types: "mesh" for geometry, "light" for lights.
-- To ADD a new node, use op:"add" with path "/nodes/-" (appends to the node list).
-- To UPDATE a node's property, use op:"replace" with e.g. "/nodes/2/color".
-- To REMOVE a node, use op:"remove" with e.g. "/nodes/2".
-- Always give new nodes a unique id (e.g. "sphere_2", "blue_box_1").
-- Never modify the "floor" (index 0) or "sun" (index 1) nodes unless asked.
-- Keep paths simple: /nodes/..., /variables/..., /subscriptions/...
-- BATCH MULTIPLE CHANGES: Output a SINGLE updateGameDocument array containing all patches. NEVER call updateGameDocument more than once per message.
+CORE EDITING (updateGameDocument):
+- Colors must be CSS hex strings (e.g. "#ff0000" for red, "#0088ff" for blue)
+- Positions are [x, y, z] arrays. Ground is at y=0. Place objects above it.
+- Size is a single number (uniform scale, default 1)
+- Primitives: "box", "sphere", "ground"
+- Node types: "mesh" for geometry, "light" for lights
+- To ADD: use op:"add" with path "/nodes/-" (appends to the node list)
+- To UPDATE: use op:"replace" with e.g. "/nodes/2/color"
+- To REMOVE: use op:"remove" with e.g. "/nodes/2"
+- Always give new nodes unique ids (e.g. "sphere_2", "blue_box_1")
+- BATCH MULTIPLE CHANGES: Use a SINGLE updateGameDocument array containing all patches
 
-BEHAVIORAL LOGIC (Phase 2):
+EXTERNAL ASSETS (Phase 3):
+- For complex objects (trees, characters, buildings), use generateAsset tool
+- After generation, reference assets via the "asset" field instead of "primitive"
+- Example: { id: "my_tree", type: "mesh", asset: "spooky_tree", position: [0, 0, 0] }
+- Asset manifest path: /assets/asset_name
+
+MULTI-SCENE NAVIGATION (Phase 3):
+- The game has multiple scenes (check context for available scenes)
+- Use navigateToScene to switch between scenes/levels
+- Scene transitions can persist variables (e.g., score across levels)
+- Create scene transitions via subscriptions:
+  { type: "transition_scene", to: "level_2", persistVars: ["score"] }
+
+BEHAVIORAL LOGIC:
 If the user asks for interaction (e.g., "When I click the box, destroy it and add 1 score"):
-1. Patch the targeted mesh to add a \`clickable\` component: 
-   \`components: [{ type: "clickable", event: "box.clicked" }]\`
-2. Add a new subscription object into the \`/subscriptions/-\` array observing that event:
-   \`{ id: "box_rule", on: "box.clicked", actions: [{ type: "destroy_node", target: "$event.node" }, { type: "increment", target: "score", value: 1 }] }\`
-3. If they ask to modify a variable (like score), make sure you check if it's already instantiated.`;
+1. Add a clickable component: components: [{ type: "clickable", event: "box.clicked" }]
+2. Add a subscription: { id: "box_rule", on: "box.clicked", actions: [...] }
+3. Available actions: increment, destroy_node, transition_scene
+
+EXAMPLES:
+Add a portal to next level:
+  1. Create portal node with clickable component
+  2. Add subscription with transition_scene action
+
+Generate a custom 3D asset:
+  1. Call generateAsset({ assetKey: "custom_tree", description: "tall pine tree" })
+  2. AI automatically creates the node, or you can manually reference it
+
+Navigate between scenes:
+  User: "Take me to the boss room"
+  → Call navigateToScene({ sceneName: "boss_room" })`;
 
 // ── Detect CopilotKit availability ────────────────────────────────────────────
 
@@ -52,6 +80,8 @@ const HAS_COPILOT = Boolean(COPILOT_API_KEY || COPILOT_RUNTIME_URL);
 function CopilotHooks() {
     useGameContext();
     useGameActions();
+    useAssetGeneration();
+    useSceneNavigation();
     return null;
 }
 
@@ -157,8 +187,11 @@ function BabylonViewport() {
                     pointerEvents: 'none',
                 }}
             >
-                {/* ── NEW: Play/Stop Toggle ── */}
+                {/* ── Play/Stop Toggle ── */}
                 <PlayStopToggle />
+
+                {/* ── Scene Tree Panel ── */}
+                <SceneTreePanel />
 
                 <div
                     style={{
