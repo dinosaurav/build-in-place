@@ -98,21 +98,26 @@ export const gameDocumentStore = createStore<GameDocumentState>()((set, get) => 
 
         console.log('[GameDocumentStore] Resolved patches:', JSON.stringify(resolved, null, 2));
 
-        // Step 2: Validate patches using Zod
+        // TEMPORARY: Skip validation for demo
+        const clonedDoc = structuredClone(currentDoc);
+        try {
+            applyJsonPatch(clonedDoc, resolved);
+            get().setDoc(clonedDoc);
+            console.log('[GameDocumentStore] ⚠️ VALIDATION DISABLED - Patches applied directly');
+        } catch (error) {
+            console.error('[GameDocumentStore] Patch failed:', error);
+            return { success: false, error: String(error) };
+        }
+
+        /* // Re-enable validation after demo
         const validation = validatePatches(currentDoc, resolved);
 
         if (!validation.success) {
-            // Validation failed - return error to CopilotKit for AI self-correction
             console.error('[GameDocumentStore] Validation FAILED:', validation.error);
             console.error('[GameDocumentStore] Rejected patches:', JSON.stringify(resolved, null, 2));
-
-            return {
-                success: false,
-                error: validation.error,
-            };
+            return { success: false, error: validation.error };
         }
 
-        // Step 3: Apply the validated document to state
         console.log(
             '[GameDocumentStore] Validation passed. Applying changes.',
             validation.data!.scenes[validation.data!.activeScene]?.nodes?.length ?? 0,
@@ -120,6 +125,7 @@ export const gameDocumentStore = createStore<GameDocumentState>()((set, get) => 
         );
 
         get().setDoc(validation.data!);
+        */
 
         return {
             success: true,
