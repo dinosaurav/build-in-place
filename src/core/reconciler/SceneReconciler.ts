@@ -112,7 +112,12 @@ export class SceneReconciler {
                 (item as HemisphericLight).intensity = node.intensity;
             }
 
-            // 5. Respect destroyed-node state — hide or show
+            // 5. Apply size / uniform scaling
+            if (node.type === 'mesh' && node.size !== undefined) {
+                (item as AbstractMesh).scaling.setAll(node.size);
+            }
+
+            // 6. Respect destroyed-node state — hide or show
             if (node.type === 'mesh') {
                 (item as AbstractMesh).isVisible = !runtimeState.isDestroyed(node.id);
             }

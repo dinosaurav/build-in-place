@@ -2,6 +2,11 @@
 node_modules/
 .pnpm-store/
 
+# Environment (API keys)
+.env
+.env.local
+.env.*.local
+
 # Build output
 dist/
 dist-ssr/

@@ -68,6 +68,7 @@ export interface SceneNode {
     primitive?: 'box' | 'sphere' | 'ground';
     position: [number, number, number];
     color?: string;        // Hex string e.g. "#ff4444"
+    size?: number;         // Uniform scale (default 1)
     intensity?: number;    // For lights
     components?: Component[];
 }
@@ -105,6 +106,15 @@ export const mockGameDoc: GameDocument = {
                     position: [0, 0.7, 0],
                     color: '#ffd700',
                     components: [{ type: 'clickable', event: 'coin.clicked' }],
+                },
+                // Extra cube for bulk-edit testing
+                {
+                    id: 'box_1',
+                    type: 'mesh',
+                    primitive: 'box',
+                    position: [-2, 0.5, 0],
+                    color: '#ff4444',
+                    size: 1,
                 },
             ],
             subscriptions: [
