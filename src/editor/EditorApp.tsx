@@ -50,10 +50,12 @@ AI TEXTURE GENERATION (NanoBanana):
 - For custom materials/surfaces, use generateTexture tool
 - NanoBanana generates high-quality, seamless PBR textures at 1K/2K/4K resolution
 - Examples: "wood grain", "brick wall", "rusty metal", "grass field", "concrete"
+- IMPORTANT: Check availableTextures in context first - REUSE existing textures when possible!
 - IMPORTANT: Always specify applyToNodes parameter with node IDs to apply texture to
   Example: generateTexture({ textureKey: "wood_floor", description: "oak wood", applyToNodes: ["floor"] })
 - Can apply to multiple nodes: applyToNodes: ["floor", "wall_1", "wall_2"]
 - Textures override solid colors when both are present
+- To apply existing texture: use updateGameDocument to set texture field on node
 - Available nodes in scene: check current context for node IDs
 
 MULTI-SCENE NAVIGATION (Phase 3):

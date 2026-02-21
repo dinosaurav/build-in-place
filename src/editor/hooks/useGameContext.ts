@@ -15,21 +15,36 @@ export function useGameContext() {
 
     const activeScene = doc?.scenes?.[doc.activeScene];
 
+    // Extract available textures from the asset manifest
+    const availableTextures = doc?.assets
+        ? Object.entries(doc.assets)
+            .filter(([_, asset]) => asset.type === 'texture')
+            .map(([key, asset]) => ({
+                key,
+                description: asset.metadata?.description || 'No description',
+                resolution: asset.metadata?.resolution || 'Unknown',
+            }))
+        : [];
+
     useEffect(() => {
         if (activeScene) {
             console.log('[CopilotKit State Sync] Context updated for LLM with nodes:', activeScene.nodes.length);
+            if (availableTextures.length > 0) {
+                console.log('[CopilotKit State Sync] Available textures:', availableTextures.length);
+            }
         }
-    }, [activeScene]);
+    }, [activeScene, availableTextures.length]);
 
     useCopilotReadable({
         description:
-            'The current 3D game document. Contains all scene nodes (meshes, lights) with their IDs, positions, colors, sizes, and components. Also contains variables and event subscriptions.',
+            'The current 3D game document. Contains all scene nodes (meshes, lights) with their IDs, positions, colors, sizes, and components. Also contains variables, event subscriptions, and available textures that can be reused.',
         value: activeScene
             ? {
                 activeScene: doc.activeScene,
                 nodes: activeScene.nodes,
                 variables: activeScene.variables ?? {},
                 subscriptions: activeScene.subscriptions ?? [],
+                availableTextures: availableTextures,
             }
             : null,
     });
