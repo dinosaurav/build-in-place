@@ -79,7 +79,13 @@ const SubscriptionSchema = z.object({
 
 const AssetDefinitionSchema = z.object({
     type: z.enum(['glb', 'texture']),
-    url: z.string().url(),
+    url: z.string().refine(
+        (val) => {
+            // Accept both HTTP(S) URLs and data URLs (for embedded textures)
+            return val.startsWith('http://') || val.startsWith('https://') || val.startsWith('data:');
+        },
+        { message: 'URL must be a valid HTTP(S) URL or data URL' }
+    ),
     metadata: z
         .object({
             name: z.string().optional(),
@@ -100,6 +106,7 @@ const SceneNodeSchema = z.object({
     color: z.string().regex(/^#[0-9A-Fa-f]{6}$/).optional(),
     size: z.number().positive().optional(),
     intensity: z.number().min(0).max(10).optional(),
+    texture: z.string().optional(),
     components: z.array(ComponentSchema).optional(),
 });
 

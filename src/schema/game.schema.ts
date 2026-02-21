@@ -94,6 +94,8 @@ export interface SceneNode {
     color?: string;        // Hex string e.g. "#ff4444"
     size?: number;         // Uniform scale (default 1)
     intensity?: number;    // For lights
+    /** Texture key from asset manifest to apply as base material */
+    texture?: string;
     components?: Component[];
 }
 

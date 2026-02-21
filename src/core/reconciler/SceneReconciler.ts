@@ -15,6 +15,7 @@
  *    • Node in scene but not in JSON  → Dispose it.
  */
 
+import * as BABYLON from '@babylonjs/core';
 import {
     Engine,
     Scene,
@@ -111,9 +112,9 @@ export class SceneReconciler {
             // 2. Update position
             this.updatePosition(item, node);
 
-            // 3. Update mesh material
-            if (node.type === 'mesh' && node.color) {
-                this.updateMaterial(item as AbstractMesh, node);
+            // 3. Update mesh material (color or texture)
+            if (node.type === 'mesh' && (node.color || node.texture)) {
+                this.updateMaterial(item as AbstractMesh, node, doc);
             }
 
             // 4. Update light intensity
@@ -291,9 +292,7 @@ export class SceneReconciler {
         }
     }
 
-    private updateMaterial(mesh: AbstractMesh, node: SceneNode): void {
-        if (!node.color) return;
-
+    private updateMaterial(mesh: AbstractMesh, node: SceneNode, doc: GameDocument): void {
         const matName = `mat_${node.id}`;
         let mat = this.scene.getMaterialByName(matName) as StandardMaterial | null;
 
@@ -301,7 +300,24 @@ export class SceneReconciler {
             mat = new StandardMaterial(matName, this.scene);
         }
 
-        mat.diffuseColor = Color3.FromHexString(node.color);
+        // Priority 1: Apply texture if specified
+        if (node.texture && doc.assets) {
+            const textureAsset = doc.assets[node.texture];
+            if (textureAsset && textureAsset.type === 'texture') {
+                const texture = new BABYLON.Texture(textureAsset.url, this.scene);
+                mat.diffuseTexture = texture;
+                mat.diffuseColor = Color3.White(); // Use white to show texture properly
+                console.log(`[Reconciler] Applied texture "${node.texture}" to mesh "${node.id}"`);
+            } else {
+                console.warn(`[Reconciler] Texture "${node.texture}" not found in assets`);
+            }
+        }
+        // Priority 2: Fall back to solid color if no texture
+        else if (node.color) {
+            mat.diffuseTexture = null; // Clear any previous texture
+            mat.diffuseColor = Color3.FromHexString(node.color);
+        }
+
         mesh.material = mat;
     }
 
